@@ -4,8 +4,8 @@ import numpy as np
 def NW_hac_STATA(Vars, lags):
     '''
     Input: 
-        Vars = matrix variables has to be ordered
-        lags = number of lags
+        Vars = variables matrix (has to be ordered in the same way of the model)
+        lags = number of lags (scalar) to be use in the algorithm
     Output:
         corrected sigma by lags
     '''
@@ -20,12 +20,12 @@ def NW_hac_STATA(Vars, lags):
 def get_gamma_wald(X, Z, eta, p, n, nvar):
     '''
     Input:
-        X = matrix of exogenous variables for ols estimation type = np.array 
-        Z = matrix or vector of exog instruments type = np.array
-        eta = matrix of errors type = np.array
+        X = matrix of exogenous variables for ols estimation (np.array) 
+        Z = matrix or vector of exog instruments (np.array)
+        eta = matrix of errors (np.array)
         p = # of lags (scalar)
         n = # of endog (scalar)
-        nvar = number to  endog variables to be use in the test
+        nvar = number of the endog variable to be use in the test
     output:
         WHat, wald, Gamma_hat
     '''

@@ -1,7 +1,0 @@
-Instrutions:
-
-file: SVARIV.py
-Contains the related functions.
-
-file: test_svariv.py
-This file will call SVARIV.py and present the results.
