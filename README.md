@@ -21,16 +21,14 @@ SVARIV.py
 Contains the related functions for the implementation.
 
 example.py
-This file will call SVARIV.py functions and create 
+This file will call SVARIV.py functions and replicates the results
 
 requirements.txt
 libraries required to run the the python implementation
 
 runtime.txt
-python version to be use
-
-The python version was tested in python-3.7.6. 
-Also can be use in python 3+
+python version to be use in this case was tested in python-3.7.6
+But it should run in python 3+
 
 
 
