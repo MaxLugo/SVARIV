@@ -40,7 +40,7 @@ in the paper.
 
 # Jobs to be done
 
-Create the intervals CS_AR and the intervals CS_plugin of the methodology in the paper.
+Correction on the intervals CS_AR son the CS_boots=CS_AR and create the intervals CS_plugin of the methodology in the paper.
 
 
 
