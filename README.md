@@ -26,13 +26,13 @@ This file will call SVARIV.py functions and replicates the results. file format 
 example.ipynb
 This file will call SVARIV.py functions and replicates the results. file format .ipynb (jupyter)
 
-Both files example.* are the same in the content.
+Both files example.* have the same in the content.
 
 requirements.txt
-libraries required to run the the python implementation
+Libraries required to run the the python implementation
 
 runtime.txt
-python version to be use in this case was tested in python-3.7.6
+Python version to be use (in this case was tested in python-3.7.6)
 But it should run in python 3+
 
 At the moment the confidence intervals are constructed with a simple bootstrap procedure which are not the intervals presented
@@ -40,7 +40,7 @@ in the paper.
 
 # Jobs to be done
 
-1. Correction on the intervals CS_AR so the CS_boots=CS_AR in this repo 
+1. Correction on the intervals CS_boots so the CS_boots=CS_AR in this repo. 
 2. Create the intervals CS_plugin of the methodology in the paper.
 
 
