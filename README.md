@@ -21,22 +21,22 @@ SVARIV.py
 Contains the related functions for the implementation. The What, wald test, Gamma_hat, irf procedures and plot functions are inside the file.
 
 example.py
-This file will call SVARIV.py functions and replicates the results. file format .py (native python)
+The file will call SVARIV.py functions and replicates the results. file format .py (native python)
 
 example.ipynb
-This file will call SVARIV.py functions and replicates the results. file format .ipynb (jupyter)
+The file will call SVARIV.py functions and replicates the results. file format .ipynb (jupyter)
 
-Both files example.* have the same in the content.
+Both files example.* have the same content.
 
 requirements.txt
-Libraries required to run the the python implementation
+Libraries required to run the python implementation.
 
 runtime.txt
 Python version to be use (in this case was tested in python-3.7.6)
 But it should run in python 3+
 
 At the moment the confidence intervals are constructed with a simple bootstrap procedure which are not the intervals presented
-in the paper. 
+in the paper.
 
 # Jobs to be done
 
