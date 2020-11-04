@@ -18,7 +18,7 @@ data = required data from the paper.
 Files:
 
 SVARIV.py
-Contains the related functions for the implementation.
+Contains the related functions for the implementation. The What, wald test, Gamma_hat, irf procedures and plot functions are inside the file.
 
 example.py
 This file will call SVARIV.py functions and replicates the results. file format .py (native python)
