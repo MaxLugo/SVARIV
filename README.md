@@ -35,12 +35,13 @@ runtime.txt
 python version to be use in this case was tested in python-3.7.6
 But it should run in python 3+
 
-At the moment the confidence intervals are constructed with a simple bootstrap procedure which is not the intervals presented
+At the moment the confidence intervals are constructed with a simple bootstrap procedure which are not the intervals presented
 in the paper. 
 
 # Jobs to be done
 
-Correction on the intervals CS_AR son the CS_boots=CS_AR and create the intervals CS_plugin of the methodology in the paper.
+1. Correction on the intervals CS_AR so the CS_boots=CS_AR in this repo 
+2. Create the intervals CS_plugin of the methodology in the paper.
 
 
 
