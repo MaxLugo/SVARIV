@@ -21,7 +21,12 @@ SVARIV.py
 Contains the related functions for the implementation.
 
 example.py
-This file will call SVARIV.py functions and replicates the results
+This file will call SVARIV.py functions and replicates the results. file format .py (native python)
+
+example.ipynb
+This file will call SVARIV.py functions and replicates the results. file format .ipynb (jupyter)
+
+Both files example.* are the same in the content.
 
 requirements.txt
 libraries required to run the the python implementation
@@ -29,6 +34,13 @@ libraries required to run the the python implementation
 runtime.txt
 python version to be use in this case was tested in python-3.7.6
 But it should run in python 3+
+
+At the moment the confidence intervals are constructed with a simple bootstrap procedure which is not the intervals presented
+in the paper. 
+
+# Jobs to be done
+
+Create the intervals CS_AR and the intervals CS_plugin of the methodology in the paper.
 
 
 
