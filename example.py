@@ -2,7 +2,8 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 import SVARIV
-
+from scipy.stats import chi2
+from scipy.stats import norm
 
 
 #parameters 
@@ -33,16 +34,108 @@ eta = ols_est['errors']
 # Gamma & Wald
 #=============================================================================#
 WHat, wald, Gamma_hat = SVARIV.get_gamma_wald(X, Z, eta, p, n, nvar)
+F_stats = SVARIV.first_stage_f(Y[:,0].reshape(len(Y),1), 
+                               np.concatenate([Z, X[:,1:]], axis=1), kz=1)
+F_stats = SVARIV.first_stage_f(Y[:,0].reshape(len(Y),1), Z)
+
+
+
 print('Gamma_hat estimated: {}'.format(Gamma_hat))
 print('Wald: {}'.format(wald))
+#print('First stage effective with controls F: {}'.format(F_stats['F_effective']))
+#print('First stage nonrobust with controls F: {}'.format(F_stats['F_nonrobust']))
+#print('critical value Chi2(1) at 95%: {}'.format(chi2.ppf(.95, 1)))
+
+
 
 
 #=============================================================================#
-# Impulse response
+# Impulse response in construction
 #=============================================================================#
 betas = ols_est['betas_hat'].T
 betas_lag = betas[:,1:]
 omega = (ols_est['errors'].T @ ols_est['errors']) / len(ols_est['errors'])
+G = SVARIV.Gmatrices(betas_lag, p, hori=21)['G']
+C = SVARIV.MA_representation(betas_lag, p, hori=21)
+hori = 21
+confidence = 0.95 #not in percent
+
+
+#critical value
+critval = norm.ppf(1-(1-confidence)/2)**2
+
+#Get the W block matrixes
+W1, W2 = WHat[:-n,:-n], WHat[-n:,-n:]
+W12 = WHat[W1.shape[0]:,:W1.shape[0]].T
+
+#initialize the values
+e = np.eye(n)
+ahat = np.zeros((n, hori))
+bhat = np.zeros((n, hori))
+chat = np.zeros((n, hori))
+Deltahat = np.zeros((n, hori))
+MSWlbound = np.zeros((n, hori))
+MSWubound = np.zeros((n, hori)) 
+casedummy = np.zeros((n, hori))
+
+T = 356
+
+scale=1
+
+
+for j in range(n):    
+    for ih in range(hori):
+        ahat[j,ih] = T*(Gamma_hat[nvar-1, 0]**2) - critval*W2[nvar-1, nvar-1] 
+        
+        bhat[j, ih] = (-2*T*scale*(e[:,j].T @ C[ih] @ Gamma_hat @ Gamma_hat[nvar-1])
+                       + 2*critval*scale*np.kron(Gamma_hat.T, e[:,j].T) @ G[:,:,ih] @ W12[:,nvar-1]
+                       + 2*critval*scale*e[:,j].T @ C[ih] @ W2[:, nvar-1]
+                       )
+        
+        chat[j, ih] = ( ((T**.5)*scale*e[:,j].T @ C[ih] @ Gamma_hat)**2
+                       -critval*(scale**2)*np.kron(Gamma_hat.T, e[:,j].T) @ G[:,:,ih] @ W1 @ (np.kron(Gamma_hat.T, e[:,j].T) @ G[:,:,ih]).T
+                       -2*critval*(scale**2)*np.kron(Gamma_hat.T, e[:,j].T) @ G[:,:,ih] @ W12 @ C[ih].T @ e[:,j]
+                       -critval*(scale**2)*e[:,j].T @ C[ih] @ W2 @ C[ih].T @ e[:,j]
+                      )
+        
+        Deltahat[j,ih] = bhat[j,ih]**2 - (4*ahat[j,ih] * chat[j,ih])
+        
+        if (ahat[j, ih]>0) and (Deltahat[j,ih]>0):            
+            casedummy[j,ih] = 1
+            MSWlbound[j,ih] = (-bhat[j,ih] - (Deltahat[j,ih]**.5))/(2*ahat[j,ih])
+            MSWubound[j,ih] = (-bhat[j,ih] + (Deltahat[j,ih]**.5))/(2*ahat[j,ih])
+        elif (ahat[j, ih]<0) and (Deltahat[j,ih]>0):
+            casedummy[j,ih] = 2
+            MSWlbound[j,ih] = (-bhat[j,ih] + (Deltahat[j,ih]**.5))/(2*ahat[j,ih])
+            MSWubound[j,ih] = (-bhat[j,ih] - (Deltahat[j,ih]**.5))/(2*ahat[j,ih])
+        elif (ahat[j, ih]>0) and (Deltahat[j,ih]<0):
+            casedummy[j,ih] = 3
+            MSWlbound[j,ih] = np.nan
+            MSWubound[j,ih] = np.nan
+        else:
+            casedummy[j,ih] = 4
+            MSWlbound[j,ih] = -np.inf
+            MSWubound[j,ih] = np.inf
+            
+MSWlbound[nvar-1, 0] = scale
+MSWubound[nvar-1, 0] = scale
+        
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #Puntual estimation
 #irf with cholesky decomposition
@@ -107,6 +200,7 @@ fig13 = SVARIV.simple_plot('Real Price Oil',
                           list(range(len(cs))), 
                           '', rot=0, ylim0=-0.5, 
                           ylim1=0.2, figsize=(20,5))
+
 
 
 

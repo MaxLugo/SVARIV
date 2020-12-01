@@ -15,6 +15,45 @@ def ols(Y, X):
     rv = {'betas_hat':betas, 'errors':errores, 'Y_hat':Y_hat}
     return rv
 
+def first_stage_f(y, Z, kz=None):
+    '''
+    Input:
+        y = vector with the endogenous variable to instrument (type np array)
+        Z = vector/matrix of instruments (type np array)
+        kz = integer. If Z have control variables kz is the first column of Z
+        that have control variable. If kz = none (default value) all variables
+        will be consider has instruments
+    Output:
+        rv = dictionary with 3 F statistics: non robust, effective and robust
+    Note: it assumes that Z has to be order, first columns as instruments and 
+    the following are controls (if it is the case). 
+    '''
+    #FIXME This is not correct! Do not use this function!
+    z = np.concatenate([Z, np.ones((len(Z), 1))], axis=1)
+    Pi = np.linalg.inv(z.T @ z) @ z.T @ y
+    if  kz != None:
+        z, Pi = z[:,:kz], Pi[:kz,:]
+    e = y - z @ Pi
+    Pz = z @ np.linalg.inv(z.T @ z) @ z.T
+    o = (e.T @ e / len(e))[0,0]
+    F_nonrobust = y.T @ Pz @ y / (len(z.T)*o)
+    rv = {'F_nonrobust':F_nonrobust[0,0]}
+    
+    #effective F
+    O = np.kron(z, e[:,0]) / len(y)**.5
+    J = int(len(O.T) / len(O))
+    v = np.array([np.diag(O[:, j*len(O):(j+1)*len(O)]) for j in range(J)]).T
+    W = v.T @ v
+    F_effective = (y.T @ Pz @ y) / np.trace(W)
+    rv['F_effective'] = F_effective[0,0]
+    # equivalent to :
+    # O = np.array([list(z[:,j]*e[:,0]/len(y)**.5) for j in range(len(z.T))]).T
+        
+    #robust F
+    F_robust = (y.T @ z @ np.linalg.inv(W) @ z.T @ y) / (len(z)*len(z.T))
+    rv['F_robust'] = F_robust[0,0]
+    return rv
+
 
 def NW_hac_STATA(Vars, lags):
     '''
@@ -93,8 +132,9 @@ def get_gamma_wald(X, Z, eta, p, n, nvar):
 def irf_lineal_cholesky(betas, S, periods=21, normalize=True, cumulative=True):
     '''
     Input:
-        betas = array in the order of the model (np.array)
-        S = is a covariance matrix (np.array) 
+        betas = array in the order of the model (np.array) no constant 
+                with n rows = number of endog variables, in the paper betas=A
+        S = is a covariance matrix (np.array)
             if S has shape nx1 it will asume that S = Gamma_hat
         normalize=True will normalize to the shock to be 1 default=True
         cumulative=True will accumulate the irf response default=True
@@ -127,6 +167,81 @@ def irf_lineal_cholesky(betas, S, periods=21, normalize=True, cumulative=True):
     return rv
 
 
+def MA_representation(betas, p, hori=21):    
+    '''
+    Input:
+        betas = matrix with the betas of the reduce ols estimation with
+                n rows = number endog variables and columns = number of p lags * n
+                in the paper betas=A.
+        p = number of lags
+        hori = number of forecast periods to be use in the MA representation 
+                in the paper is 20. In python is
+                going to be 21 because it is not inclusive
+    Output:
+        C = list of matrixes (0 to k elements) with the MA representation 
+            in the sense of
+            Y_t = Sum_k=0^inf C_k(A) * e_t-k
+            where:
+                C(A)_k = Sum_m=1^k C_k-m(A) A_m for k=1,2,...    
+    Notes: betas_lag doesn't consider the constant of course. 
+            For values m>p => A_m=0.
+    '''
+    n = len(betas)
+    A, C = [betas[:, n*i: n*(i+1)]  for i in range(p)], [np.eye(n)]
+    for m in range(1, hori):
+        C_m = np.array([a @ c for a, c in zip(A[:m], list(reversed(C)))]).sum(axis=0)
+        C.append(C_m)
+    return C
+
+
+def Gmatrices(betas, p, hori=21):
+    '''
+    Input:
+        betas = parameters of the ols reduce estimation (no constant).
+                n rows = number endog variables and columns = number of p lags * n
+                in the paper betas=A.
+        p = number of lags in the var
+        horin = number of forecast periods
+    Output:
+        rv = {'G': gradient matrix for a given horizon,
+              'Gcum':G (cumulative)}
+    Notes: it is 3D array elements in the dictionary rv. The 2 axis is the horizon
+    axis
+    '''
+    n = len(betas)
+    
+    #create the MA representation
+    C = MA_representation(betas, p, 21)
+    C_aux = ([np.eye(n)] + C[:hori])[:hori-1]
+    
+    J = np.concatenate([np.eye(n), np.zeros((n,(p-1)*n))], axis=1)
+    
+    Alut = np.concatenate([betas, np.zeros((len(betas.T)-len(betas), len(betas.T)))], axis=0)
+    Alut[len(betas):,:len(Alut.T)-len(betas)] = np.eye(len(Alut[len(betas):,:]))
+    
+    AJ = [np.linalg.matrix_power(Alut, h) @ J.T for h in range(hori-1)]
+    AJp = np.concatenate(AJ, axis=1).T
+    
+    AJaux = []
+    for i in range(hori-1):
+        l = np.kron(AJp[:n*(hori- i),:], C_aux[i])
+        Z = np.zeros((AJp.shape[0]*n, AJp.shape[1]*n))
+        Z[i*n**2:, :] = l[:len(Z)-n**2*i, :]
+        AJaux.append(Z)
+    
+    G0 = np.array(AJaux).sum(axis=0).T.reshape(p*n**2, n**2, hori-1, order='F')
+    Gaux = np.moveaxis(G0, [0,1,2], [1,0,2])
+    G = np.zeros((Gaux.shape[0], Gaux.shape[1], Gaux.shape[2]+1))
+    
+    for i in range(1,Gaux.shape[2]+1):
+        G[:,:,i] = Gaux[:,:,i-1]
+    
+    Gcum = np.cumsum(G,2)
+    
+    return {'G':G, 'Gcum':Gcum}
+
+
+
 def simple_plot(title, est, est2, low, upp, xticks, ylabel, rot=0, ylim0=-3.5, 
                 ylim1=3.5, figsize=(20,5), xlabel='Months'):
     '''
@@ -147,7 +262,7 @@ def simple_plot(title, est, est2, low, upp, xticks, ylabel, rot=0, ylim0=-3.5,
         figure of matplotlib
     '''
     f, ax = plt.subplots(1, figsize=figsize)
-    ax.set_title(title,fontsize=30) #,fontweight='bold')
+    ax.set_title(title,fontsize=30)
     plt.plot(est, color='blue', zorder=1, linewidth=4)
     plt.plot(est2, color='red', zorder=1, linewidth=1)
     plt.fill_between(xticks , low, upp, color='b', alpha=.1)
