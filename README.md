@@ -14,7 +14,7 @@ data = required data from the paper (taken from the original data).
 
 Files:
 
-SVARIV.py
+SVARIV folder.
 
 Contains the related functions for the implementation. The What, wald test, Gamma_hat, irf procedures and plot functions are inside the file.
 	
