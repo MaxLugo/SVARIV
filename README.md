@@ -28,10 +28,10 @@ Contains the related functions for the implementation. The What, wald test, Gamm
 
 
 example.py
-The file will call SVARIV.py functions and replicates the results. file format .py (native python)
+The file will call SVARIV functions and replicates the results. file format .py (native python)
 
 example.ipynb
-The file will call SVARIV.py functions and replicates the results. file format .ipynb (jupyter notebook)
+The file will call SVARIV functions and replicates the results. file format .ipynb (jupyter notebook)
 
 Both files example.* have the same content. The python file replicates Figure 1 and 2 and related results of the Oil 
 example exogenous instrument.
