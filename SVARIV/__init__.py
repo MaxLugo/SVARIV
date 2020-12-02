@@ -1,5 +1,19 @@
 import numpy as np
+from scipy.stats import norm
 import matplotlib.pyplot as plt
+
+
+def norm_critval(confidence=0.95, sq=False):
+    '''
+    Input:
+        confidence = 0.95 =>95% confidence interval is the defualt
+    Ouput:
+        rv =  critical value of gaus ppf distribucion given the confidence interval
+        sq = False (default). If it going to be square the critval
+    '''
+    rv = norm.ppf(1-(1-confidence)/2)**2 if sq else norm.ppf(1-(1-confidence)/2)
+    return rv
+
 
 def ols(Y, X):
     '''
@@ -13,45 +27,6 @@ def ols(Y, X):
     Y_hat = X @ betas
     errores = Y - Y_hat
     rv = {'betas_hat':betas, 'errors':errores, 'Y_hat':Y_hat}
-    return rv
-
-def first_stage_f(y, Z, kz=None):
-    '''
-    Input:
-        y = vector with the endogenous variable to instrument (type np array)
-        Z = vector/matrix of instruments (type np array)
-        kz = integer. If Z have control variables kz is the first column of Z
-        that have control variable. If kz = none (default value) all variables
-        will be consider has instruments
-    Output:
-        rv = dictionary with 3 F statistics: non robust, effective and robust
-    Note: it assumes that Z has to be order, first columns as instruments and 
-    the following are controls (if it is the case). 
-    '''
-    #FIXME This is not correct! Do not use this function!
-    z = np.concatenate([Z, np.ones((len(Z), 1))], axis=1)
-    Pi = np.linalg.inv(z.T @ z) @ z.T @ y
-    if  kz != None:
-        z, Pi = z[:,:kz], Pi[:kz,:]
-    e = y - z @ Pi
-    Pz = z @ np.linalg.inv(z.T @ z) @ z.T
-    o = (e.T @ e / len(e))[0,0]
-    F_nonrobust = y.T @ Pz @ y / (len(z.T)*o)
-    rv = {'F_nonrobust':F_nonrobust[0,0]}
-    
-    #effective F
-    O = np.kron(z, e[:,0]) / len(y)**.5
-    J = int(len(O.T) / len(O))
-    v = np.array([np.diag(O[:, j*len(O):(j+1)*len(O)]) for j in range(J)]).T
-    W = v.T @ v
-    F_effective = (y.T @ Pz @ y) / np.trace(W)
-    rv['F_effective'] = F_effective[0,0]
-    # equivalent to :
-    # O = np.array([list(z[:,j]*e[:,0]/len(y)**.5) for j in range(len(z.T))]).T
-        
-    #robust F
-    F_robust = (y.T @ z @ np.linalg.inv(W) @ z.T @ y) / (len(z)*len(z.T))
-    rv['F_robust'] = F_robust[0,0]
     return rv
 
 
@@ -211,7 +186,7 @@ def Gmatrices(betas, p, hori=21):
     n = len(betas)
     
     #create the MA representation
-    C = MA_representation(betas, p, 21)
+    C = MA_representation(betas, p, 21)[1:]
     C_aux = ([np.eye(n)] + C[:hori])[:hori-1]
     
     J = np.concatenate([np.eye(n), np.zeros((n,(p-1)*n))], axis=1)
@@ -227,23 +202,139 @@ def Gmatrices(betas, p, hori=21):
         l = np.kron(AJp[:n*(hori- i),:], C_aux[i])
         Z = np.zeros((AJp.shape[0]*n, AJp.shape[1]*n))
         Z[i*n**2:, :] = l[:len(Z)-n**2*i, :]
-        AJaux.append(Z)
-    
+        AJaux.append(Z)    
     G0 = np.array(AJaux).sum(axis=0).T.reshape(p*n**2, n**2, hori-1, order='F')
     Gaux = np.moveaxis(G0, [0,1,2], [1,0,2])
-    G = np.zeros((Gaux.shape[0], Gaux.shape[1], Gaux.shape[2]+1))
-    
+    G = np.zeros((Gaux.shape[0], Gaux.shape[1], Gaux.shape[2]+1))    
     for i in range(1,Gaux.shape[2]+1):
-        G[:,:,i] = Gaux[:,:,i-1]
-    
-    Gcum = np.cumsum(G,2)
-    
+        G[:,:,i] = Gaux[:,:,i-1]    
+    Gcum = np.cumsum(G,2)    
     return {'G':G, 'Gcum':Gcum}
 
 
+def CI_dmethod(Gamma_hat, WHat, G, T, C, hori=21, confidence=0.95, scale=1, nvar=1):
+    '''
+    Input:
+        Gamma_hat = estimate of Gamma according to the paper with n rows= number of endog
+                    n columns=1
+        WHat = Block covariance matrix = [[W1 , W12], [W12 , W2]] 
+        G = Gradient matrix to be use could G or Gcum
+        T = number of observations
+        hori = 21 by default. Periods in the forecast. Same length as G.shape[1]
+        C = The Ma represenation of A (betas_lag) in a list form 
+        confidence=0.95 by default. Is the confidence value to be in for the critical value
+        scale = 1 by default which is the normalization to 1 in the first variable
+        nvar = 1 by default which is the endog variable use as the normalization in Gamma_hat
+    Output:
+        rv = dictionary with the confidence intervals,
+           = {'l':MSWlbound, 'u':MSWubound, 'ahat':ahat, 'bhat':bhat, 'chat':chat,
+              'Deltahat':Deltahat,'casedummy':casedummy}        
+    '''
+    n = len(Gamma_hat)
+    critval = norm.ppf(1-(1-confidence)/2)**2
+    W1, W2 = WHat[:-n,:-n], WHat[-n:,-n:]
+    W12 = WHat[W1.shape[0]:,:W1.shape[0]].T
 
-def simple_plot(title, est, est2, low, upp, xticks, ylabel, rot=0, ylim0=-3.5, 
-                ylim1=3.5, figsize=(20,5), xlabel='Months'):
+    e = np.eye(n)
+    ahat = np.zeros((n, hori))
+    bhat = np.zeros((n, hori))
+    chat = np.zeros((n, hori))
+    Deltahat = np.zeros((n, hori))
+    MSWlbound = np.zeros((n, hori))
+    MSWubound = np.zeros((n, hori)) 
+    casedummy = np.zeros((n, hori))
+    
+    for j in range(n):    
+        for ih in range(hori):
+            
+            ahat[j,ih] = T*(Gamma_hat[nvar-1, 0]**2) - critval*W2[nvar-1, nvar-1] 
+            
+            bhat[j, ih] = (-2*T*scale*(e[:,j].T @ C[ih] @ Gamma_hat @ Gamma_hat[nvar-1])
+                           + 2*critval*scale*np.kron(Gamma_hat.T, e[:,j].T) @ G[:,:,ih] @ W12[:, nvar-1]
+                           + 2*critval*scale*e[:,j].T @ C[ih] @ W2[:, nvar-1]
+                           )
+            
+            chat[j, ih] = (((T**.5)*scale*e[:,j].T @ C[ih] @ Gamma_hat)**2
+                           -critval*(scale**2)*np.kron(Gamma_hat.T, e[:,j].T) @ G[:,:,ih] @ W1 @ (np.kron(Gamma_hat.T, e[:,j].T) @ G[:,:,ih]).T
+                           -2*critval*(scale**2)*np.kron(Gamma_hat.T, e[:,j].T) @ G[:,:,ih] @ W12 @ C[ih].T @ e[:,j]
+                           -critval*(scale**2)*e[:,j].T @ C[ih] @ W2 @ C[ih].T @ e[:,j]
+                          )
+            
+            Deltahat[j,ih] = bhat[j,ih]**2 - (4*ahat[j,ih] * chat[j,ih])
+            
+            if (ahat[j, ih]>0) and (Deltahat[j,ih]>0):            
+                casedummy[j,ih] = 1
+                MSWlbound[j,ih] = (-bhat[j,ih] - (Deltahat[j,ih]**.5))/(2*ahat[j,ih])
+                MSWubound[j,ih] = (-bhat[j,ih] + (Deltahat[j,ih]**.5))/(2*ahat[j,ih])
+            elif (ahat[j, ih]<0) and (Deltahat[j,ih]>0):
+                casedummy[j,ih] = 2
+                MSWlbound[j,ih] = (-bhat[j,ih] + (Deltahat[j,ih]**.5))/(2*ahat[j,ih])
+                MSWubound[j,ih] = (-bhat[j,ih] - (Deltahat[j,ih]**.5))/(2*ahat[j,ih])
+            elif (ahat[j, ih]>0) and (Deltahat[j,ih]<0):
+                casedummy[j,ih] = 3
+                MSWlbound[j,ih] = np.nan
+                MSWubound[j,ih] = np.nan
+            else:
+                casedummy[j,ih] = 4
+                MSWlbound[j,ih] = -np.inf
+                MSWubound[j,ih] = np.inf
+                
+    MSWlbound[nvar-1, 0] = scale
+    MSWubound[nvar-1, 0] = scale
+    
+    rv = {'l':MSWlbound, 'u':MSWubound, 'ahat':ahat, 'bhat':bhat, 'chat':chat,
+          'Deltahat':Deltahat,'casedummy':casedummy}    
+    return rv
+
+
+def CI_dmethod_standard(Gamma_hat, WHat, G, T, C, hori=21, confidence=0.95, scale=1, nvar=1):
+    '''
+    Input:
+        Gamma_hat = estimate of Gamma according to the paper with n rows= number of endog
+                    n columns=1
+        WHat = Block covariance matrix = [[W1 , W12], [W12 , W2]] 
+        G = Gradient matrix to be use could G or Gcum
+        T = number of observations
+        hori = 21 by default. Periods in the forecast. Same length as G.shape[1]
+        C = The Ma represenation of A (betas_lag) in a list form 
+        confidence = 0.95 by default. Is the confidence value to be in for the critical value
+        scale = 1 by default which is the normalization to 1 in the first variable
+        nvar = 1 by default which is the endog variable use as the normalization in Gamma_hat
+    Output:
+        rv = dictionary with the confidence intervals,
+           = {'lambdahatcum':lambdahatcum, 'DmethodVarcum':DmethodVarcum, 
+              'Dmethodlboundcum':Dmethodlboundcum, 'Dmethoduboundcum':Dmethoduboundcum}
+    '''
+    n = len(Gamma_hat)
+    critval = norm.ppf(1-(1-confidence)/2)**2
+    e = np.eye(n)
+    lambdahatcum = np.zeros((n, hori))
+    DmethodVarcum = np.zeros((n, hori))
+    Dmethodlboundcum = np.zeros((n, hori))
+    Dmethoduboundcum = np.zeros((n, hori))
+    for ih in range(hori):    
+        for ivar in range(n):
+            lambdahatcum[ivar,ih] = (scale*e[:,ivar].T @ C[ih] @ Gamma_hat / Gamma_hat[nvar-1,0])[0]        
+            d1 = scale * np.kron(Gamma_hat.T, e[:,ivar].T) @ G[:,:,ih]
+            d2 = scale * e[:,ivar].T @ C[ih] - lambdahatcum[ivar,ih] * e[:, nvar-1].T
+            d = np.concatenate([d1, d2.reshape(1,len(d2))], axis=1).T
+            DmethodVarcum[ivar,ih] = d.T @ WHat @ d
+            Dmethodlboundcum[ivar,ih] = lambdahatcum[ivar,ih] - ((critval/T)**.5)*(DmethodVarcum[ivar,ih]**.5)/abs(Gamma_hat[nvar-1,0])
+            Dmethoduboundcum[ivar,ih] = lambdahatcum[ivar,ih] + ((critval/T)**.5)*(DmethodVarcum[ivar,ih]**.5)/abs(Gamma_hat[nvar-1,0])
+            del d1, d2, d
+
+    std = (DmethodVarcum**.5) / ((T**.5)*np.abs(Gamma_hat[nvar-1,0]))
+    rv = {'lambdahatcum':lambdahatcum, 'DmethodVarcum':DmethodVarcum, 
+          'l':Dmethodlboundcum, 'u':Dmethoduboundcum, 'pluginirf':lambdahatcum,
+          'pluginirfstderror':std}
+    return rv
+
+
+
+
+def simple_plot(title, est, est2, low_ar, upp_ar, low_plugin, upp_plugin,  
+                xticks, ylabel, rot=0, ylim0=-3.5, ylim1=3.5, figsize=(20,5), 
+                xlabel='Months', legend=None):
     '''
     Input:
         title = title of the plot
@@ -265,8 +356,14 @@ def simple_plot(title, est, est2, low, upp, xticks, ylabel, rot=0, ylim0=-3.5,
     ax.set_title(title,fontsize=30)
     plt.plot(est, color='blue', zorder=1, linewidth=4)
     plt.plot(est2, color='red', zorder=1, linewidth=1)
-    plt.fill_between(xticks , low, upp, color='b', alpha=.1)
-    ax.legend(['SVARIV','Cholesky','$CS^{boots}$'], fontsize=17).set_zorder(5)
+    plt.fill_between(xticks , low_ar, upp_ar, color='b', alpha=.1)
+    plt.plot(low_plugin, '--', color='b', zorder=1, linewidth=2)
+    if legend == None:
+        ax.legend(['SVARIV','Cholesky', '$CS^{plugin}$','$CS^{AR}$'], fontsize=17).set_zorder(5)
+    else:
+        ax.legend(legend, fontsize=17).set_zorder(5)
+    plt.plot(upp_plugin, '--', color='b', zorder=1, linewidth=2)
+    ax.grid(axis='y')
     plt.xticks(list(range(len(xticks))), xticks, rotation=rot,fontsize=20)
     plt.yticks(fontsize=20)
     plt.ylim(ylim0, ylim1)

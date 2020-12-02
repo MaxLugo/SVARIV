@@ -1,7 +1,5 @@
 # SVARIV in python 
 
-# In construction
-
 (This repository is a python implementation of the original repository in matlab)
 
 This repository contains a python suite to construct weak-instrument robust confidence intervals for impulse response coefficients in Structural Vector Autoregressions identified with an external instrument. See "Inference in Structural Vector Autoregressions identified by an external instrument" by J.L Montiel Olea, J. H. Stock, and M. W. Watso…
@@ -10,23 +8,33 @@ The original repository is the following: https://github.com/jm4474/SVARIV
 
 The original paper can be download from: http://www.joseluismontielolea.com/papers.html 
 
-
 Folder:
 
-data = required data from the paper. 
+data = required data from the paper (taken from the original data).  
 
 Files:
 
 SVARIV.py
+
 Contains the related functions for the implementation. The What, wald test, Gamma_hat, irf procedures and plot functions are inside the file.
+	
+	- IRF puntual estimation function
+
+	- MA representarion and gradient estimation function
+
+	- WHat, wald test and Gamma function
+
+	- Confidence set estimations 
+
 
 example.py
 The file will call SVARIV.py functions and replicates the results. file format .py (native python)
 
 example.ipynb
-The file will call SVARIV.py functions and replicates the results. file format .ipynb (jupyter)
+The file will call SVARIV.py functions and replicates the results. file format .ipynb (jupyter notebook)
 
-Both files example.* have the same content.
+Both files example.* have the same content. The python file replicates Figure 1 and 2 and related results of the Oil 
+example exogenous instrument.
 
 requirements.txt
 Libraries required to run the python implementation.
@@ -38,10 +46,12 @@ But it should run in python 3+
 At the moment the confidence intervals are constructed with a simple bootstrap procedure which are not the intervals presented
 in the paper.
 
-# Jobs to be done
+## Jobs to be done
 
-1. Correction on the intervals CS_boots so the CS_boots=CS_AR in this repo (match exactly at the moment almost the same but not quite). 
-2. Create the intervals CS_plugin of the methodology in the paper.
+1. F test is not presented (test for weak instruments). 
+2. Monte Carlo excercises
+
+
 
 
 
