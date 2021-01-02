@@ -64,7 +64,7 @@ irf_gamma_cum = SVARIV.irf_lineal_cholesky(betas_lag, Gamma_hat, cumulative=True
 
 #=============================================================================#
 #
-# 68% confidence set
+# 68% confidence set Figure A
 #
 #=============================================================================#
 # Confidense sets dmethod
@@ -75,14 +75,13 @@ Gcum = SVARIV.Gmatrices(betas_lag, p, hori=21)['Gcum'] # Gradient matrix cumulat
 T = len(Y) # number of obs
 CI = SVARIV.CI_dmethod(Gamma_hat, WHat, G, T, C, hori=21, confidence=0.68, scale=1, nvar=1) #CI intervals
 CI_cum = SVARIV.CI_dmethod(Gamma_hat, WHat, Gcum, T, Ccum, hori=21, confidence=0.68, scale=1, nvar=1) #CI intervals
-CI_s = SVARIV.CI_dmethod_standard(Gamma_hat, WHat, G, T, C)
-CI_s_cum = SVARIV.CI_dmethod_standard(Gamma_hat, WHat, Gcum, T, Ccum)
+CI_s = SVARIV.CI_dmethod_standard(Gamma_hat, WHat, G, T, C, confidence=0.68)
+CI_s_cum = SVARIV.CI_dmethod_standard(Gamma_hat, WHat, Gcum, T, Ccum, confidence=0.68)
 
-
-# plugin CS figure 1.1 
+# plugin CS figure A.1 
 plugin_cs = np.array([irf_gamma_cum[:,0] + SVARIV.norm_critval(confidence=0.68)*CI_s_cum['pluginirfstderror'][0,:], 
                       irf_gamma_cum[:,0] - SVARIV.norm_critval(confidence=0.68)*CI_s_cum['pluginirfstderror'][0,:]]).T
-fig11 = SVARIV.simple_plot('Cumulative Percent in Global Oil Production (68% interval)', 
+figA1 = SVARIV.simple_plot('Cumulative Percent in Global Oil Production (68% interval)', 
                           irf_gamma_cum[:,0], irf_chol_cum[:,0], 
                           CI_cum['l'][0,:], CI_cum['u'][0,:],
                           plugin_cs[:,0], plugin_cs[:,1],
@@ -90,10 +89,10 @@ fig11 = SVARIV.simple_plot('Cumulative Percent in Global Oil Production (68% int
                           '', rot=0, ylim0=0, 
                           ylim1=1, figsize=(20,5))
 
-# figure 1.2
+# figure A.2
 plugin_cs = np.array([irf_gamma[:,1] + SVARIV.norm_critval(confidence=0.68)*CI_s['pluginirfstderror'][1,:], 
                       irf_gamma[:,1] - SVARIV.norm_critval(confidence=0.68)*CI_s['pluginirfstderror'][1,:]]).T
-fig12 = SVARIV.simple_plot('Index of Real Economic Activity (68% interval)', 
+figA2 = SVARIV.simple_plot('Index of Real Economic Activity (68% interval)', 
                           irf_gamma[:,1], irf_chol[:,1],
                           CI['l'][1,:], CI['u'][1,:],
                           plugin_cs[:,0], plugin_cs[:,1],
@@ -101,10 +100,10 @@ fig12 = SVARIV.simple_plot('Index of Real Economic Activity (68% interval)',
                           '', rot=0, ylim0=-.2, 
                           ylim1=.2, figsize=(20,5))
 
-# figure 1.3
+# figure A.3
 plugin_cs = np.array([irf_gamma[:,2] + SVARIV.norm_critval(confidence=0.68)*CI_s['pluginirfstderror'][2,:], 
                       irf_gamma[:,2] - SVARIV.norm_critval(confidence=0.68)*CI_s['pluginirfstderror'][2,:]]).T
-fig13 = SVARIV.simple_plot('Real Price Oil (68% interval)', 
+figA3 = SVARIV.simple_plot('Real Price Oil (68% interval)', 
                           irf_gamma[:,2], irf_chol[:,2],
                           CI['l'][2,:], CI['u'][2,:],
                           plugin_cs[:,0], plugin_cs[:,1],
@@ -113,9 +112,10 @@ fig13 = SVARIV.simple_plot('Real Price Oil (68% interval)',
                           ylim1=.2, figsize=(20,5))
 
 
+
 #=============================================================================#
 #
-# 95% confidence set
+# 95% confidence set Figure B
 #
 #=============================================================================#
 # Confidense sets dmethod
@@ -129,11 +129,10 @@ CI_cum = SVARIV.CI_dmethod(Gamma_hat, WHat, Gcum, T, Ccum, hori=21, confidence=0
 CI_s = SVARIV.CI_dmethod_standard(Gamma_hat, WHat, G, T, C)
 CI_s_cum = SVARIV.CI_dmethod_standard(Gamma_hat, WHat, Gcum, T, Ccum)
 
-
-# plugin CS figure 1.1 
+# plugin CS figure B.1 
 plugin_cs = np.array([irf_gamma_cum[:,0] + SVARIV.norm_critval()*CI_s_cum['pluginirfstderror'][0,:], 
                       irf_gamma_cum[:,0] - SVARIV.norm_critval()*CI_s_cum['pluginirfstderror'][0,:]]).T
-fig11 = SVARIV.simple_plot('Cumulative Percent in Global Oil Production (95% interval)', 
+figB1 = SVARIV.simple_plot('Cumulative Percent in Global Oil Production (95% interval)', 
                           irf_gamma_cum[:,0], irf_chol_cum[:,0], 
                           CI_cum['l'][0,:], CI_cum['u'][0,:],
                           plugin_cs[:,0], plugin_cs[:,1],
@@ -141,10 +140,10 @@ fig11 = SVARIV.simple_plot('Cumulative Percent in Global Oil Production (95% int
                           '', rot=0, ylim0=-2, 
                           ylim1=2, figsize=(20,5))
 
-# figure 1.2
+# figure B.2
 plugin_cs = np.array([irf_gamma[:,1] + SVARIV.norm_critval()*CI_s['pluginirfstderror'][1,:], 
                       irf_gamma[:,1] - SVARIV.norm_critval()*CI_s['pluginirfstderror'][1,:]]).T
-fig12 = SVARIV.simple_plot('Index of Real Economic Activity (95% interval)', 
+figB2 = SVARIV.simple_plot('Index of Real Economic Activity (95% interval)', 
                           irf_gamma[:,1], irf_chol[:,1],
                           CI['l'][1,:], CI['u'][1,:],
                           plugin_cs[:,0], plugin_cs[:,1],
@@ -152,10 +151,10 @@ fig12 = SVARIV.simple_plot('Index of Real Economic Activity (95% interval)',
                           '', rot=0, ylim0=-1, 
                           ylim1=2, figsize=(20,5))
 
-# figure 1.3
+# figure B.3
 plugin_cs = np.array([irf_gamma[:,2] + SVARIV.norm_critval()*CI_s['pluginirfstderror'][2,:], 
                       irf_gamma[:,2] - SVARIV.norm_critval()*CI_s['pluginirfstderror'][2,:]]).T
-fig13 = SVARIV.simple_plot('Real Price Oil (95% interval)', 
+figB3 = SVARIV.simple_plot('Real Price Oil (95% interval)', 
                           irf_gamma[:,2], irf_chol[:,2],
                           CI['l'][2,:], CI['u'][2,:],
                           plugin_cs[:,0], plugin_cs[:,1],

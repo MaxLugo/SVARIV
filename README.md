@@ -17,6 +17,7 @@ Files:
 SVARIV folder.
 
 Contains the related functions for the implementation. The What, wald test, Gamma_hat, irf procedures and plot functions are inside the file.
+
 	
 	- IRF puntual estimation function
 
@@ -43,8 +44,7 @@ runtime.txt
 Python version to be use (in this case was tested in python-3.7.6)
 But it should run in python 3+
 
-figure1_matlabvspython_validation.xlsx
-The file compare the matlab (original) results and the python results (replicaiton). This is only made for the first figure. It is also accomplished for the second, but it is not presented. The file was made for validation porpueses for the plug-in confidense sets (CS-plug-in) and also it is possible to validate the CS-AR.
+	- validation.xlsx: the file compare the matlab results (original) and the python results (replicaiton). The file was made for validation porpuses for the plug-in estimation,the confidense sets CS-plug-in and the CS-AR. It can be seen the results in both programs are the same.
 
 
 ## Jobs to be done
