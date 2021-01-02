@@ -44,7 +44,13 @@ runtime.txt
 Python version to be use (in this case was tested in python-3.7.6)
 But it should run in python 3+
 
-	- validation.xlsx: the file compare the matlab results (original) and the python results (replicaiton). The file was made for validation porpuses for the plug-in estimation,the confidense sets CS-plug-in and the CS-AR. It can be seen the results in both programs are the same.
+## Validation
+
+It is created a excel file that compare the matlab and python results.
+
+
+validation.xlsx 
+the file compare the matlab results (original) and the python results (replicaiton). The file was made for validation porpuses for the plug-in estimation,the confidense sets CS-plug-in and the CS-AR. It can be seen the results in both programs are the same.
 
 
 ## Jobs to be done
