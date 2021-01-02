@@ -43,13 +43,14 @@ runtime.txt
 Python version to be use (in this case was tested in python-3.7.6)
 But it should run in python 3+
 
-At the moment the confidence intervals are constructed with a simple bootstrap procedure which are not the intervals presented
-in the paper.
+figure1_matlabvspython_validation.xlsx
+The file compare the matlab (original) results and the python results (replicaiton). This is only made for the first figure. It is also accomplished for the second, but it is not presented. The file was made for validation porpueses for the plug-in confidense sets (CS-plug-in) and also it is possible to validate the CS-AR.
+
 
 ## Jobs to be done
 
-1. F test is not presented (test for weak instruments). 
-2. Monte Carlo excercises
+1. F test is not presented (test for weak instruments, 2013 paper of the same author). 
+2. Monte Carlo excercises (it is not created)
 
 
 
